@@ -1,0 +1,6 @@
+{
+    "parent": "minecraft:item/generated",
+    "textures": {
+        "layer0": "crybaby:items/tear_bottle_4"
+    }
+}

@@ -1,0 +1,199 @@
+package crybaby;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import crybaby.items.ItemSaltBottle;
+import crybaby.items.ItemTearBottle;
+import crybaby.sounds.CrybabySounds;
+import lombok.Getter;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.SoundEvents;
+import net.minecraft.inventory.Slot;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.Instance;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+
+@Mod(modid = "crybaby")
+public class Crybaby
+{
+    @Instance
+    @Getter
+    private static Crybaby instance;
+    
+    @Getter
+    private CreativeTabs creativeTab = new CreativeTabs("crybaby")
+    {
+        @Override
+        public Item getTabIconItem()
+        {
+            return ItemTearBottle.getInstance();
+        }
+    };
+    
+    private Configuration config;
+    
+    @Getter
+    private int smeltExperience;
+    
+    @Getter
+    private int cryingTime;
+    
+    @Getter
+    private int debuffTime;
+    
+    @Getter
+    private float cryingVolume;
+    
+    @Getter
+    private List<String> debuffs;
+    
+    private void loadConfig()
+    {
+        smeltExperience = config.getInt("smeltExperience", "general", 5, 0, Integer.MAX_VALUE, "Amount of experience from smelting one bottle of tears into a bottle of salt");
+        cryingTime = config.getInt("cryingTime", "general", 400, 1, Integer.MAX_VALUE, "Time, in ticks, to fully fill a bottle with tears (Note: this will affect the meta value of the empty bottle, but not the filled one)");
+        debuffTime = config.getInt("debuffTime", "general", 400, 0, Integer.MAX_VALUE, "Time, int ticks, of the debuffs a player gets from crying");
+        debuffs = ImmutableList.copyOf(config.getStringList("debuffs", "general", new String[] { "minecraft:slowness", "minecraft:weakness" }, "List of debuffs a player gets from crying"));
+        cryingVolume = config.getFloat("cryingVolume", "general", 0.5F, 0.0F, 1.0F, "Volume of crying sound");
+        
+        if (config.hasChanged())
+        {
+            config.save();
+        }
+    }
+    
+    @Mod.EventHandler
+    public void preInit(FMLPreInitializationEvent event)
+    {
+        config = new Configuration(event.getSuggestedConfigurationFile());
+        loadConfig();
+        
+        ItemTearBottle.getInstance();
+        ItemSaltBottle.getInstance();
+        CrybabySounds.init();
+        MinecraftForge.EVENT_BUS.register(this);
+    }
+    
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event)
+    {
+        CrybabyRecipes.init();
+    }
+    
+    private Map<UUID, Long> lastCries = Maps.newHashMap();
+    private Set<UUID> crying = Sets.newHashSet();
+    
+    public void startCrying(EntityPlayer player)
+    {
+        crying.add(player.getUniqueID());
+    }
+    
+    public void stopCrying(EntityPlayer player)
+    {
+        crying.remove(player.getUniqueID());
+    }
+    
+    public boolean isCrying(EntityPlayer player)
+    {
+        return crying.contains(player.getUniqueID());
+    }
+    
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onSound(PlaySoundAtEntityEvent event)
+    {
+        if (!event.isCanceled() && (event.getEntity() instanceof EntityPlayer))
+        {
+            EntityPlayer player = (EntityPlayer) event.getEntity();
+            
+            if (event.getSound().equals(SoundEvents.ENTITY_GENERIC_DRINK) && player.getActiveItemStack().getItem().equals(ItemTearBottle.getInstance()))
+            {
+                long lastCry = lastCries.getOrDefault(player.getUniqueID(), 0L);
+                
+                if ((System.currentTimeMillis() - lastCry) >= 3000)
+                {
+                    lastCries.put(player.getUniqueID(), System.currentTimeMillis());
+                    event.setSound(CrybabySounds.crying);
+                    event.setVolume(getCryingVolume());
+                }
+                else
+                {
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+    
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onDamage(LivingAttackEvent event)
+    {
+        if (!event.isCanceled() && (event.getEntity() instanceof EntityPlayer))
+        {
+            EntityPlayer player = (EntityPlayer) event.getEntity();
+            
+            for (Slot slot : player.inventoryContainer.inventorySlots)
+            {
+                ItemStack stack = slot.getStack();
+                
+                if ((stack != null) && stack.getItem().equals(ItemTearBottle.getInstance()) && (stack.getItemDamage() > 0))
+                {
+                    stack.setItemDamage(stack.getItemDamage() - 1);
+                    player.inventory.setInventorySlotContents(slot.getSlotIndex(), stack);
+                    
+                    if (stack.getItemDamage() <= 0)
+                    {
+                        stack.setItemDamage(0);
+                        stopCrying(player);
+                    }
+                    
+                    break;
+                }
+            }
+        }
+    }
+    
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onTick(TickEvent.PlayerTickEvent event)
+    {
+        if (isCrying(event.player))
+        {
+            for (Slot slot : event.player.inventoryContainer.inventorySlots)
+            {
+                ItemStack stack = slot.getStack();
+                
+                if (isCrying(event.player))
+                {
+                    if ((stack != null) && stack.getItem().equals(ItemTearBottle.getInstance()) && (stack.getItemDamage() > 0))
+                    {
+                        stack.setItemDamage(stack.getItemDamage() - 1);
+                        event.player.inventory.setInventorySlotContents(slot.getSlotIndex(), stack);
+                        
+                        if (stack.getItemDamage() <= 0)
+                        {
+                            stack.setItemDamage(0);
+                            stopCrying(event.player);
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}

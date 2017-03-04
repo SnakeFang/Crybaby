@@ -1,0 +1,11 @@
+{
+	"crying": {
+		"category": "voice",
+		"sounds": [
+			"crybaby:cry_1",
+			"crybaby:cry_2",
+			"crybaby:cry_3"
+		],
+		"subtitle": "crybaby.subtitle.cry"
+	}
+}

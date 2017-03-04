@@ -1,0 +1,16 @@
+[
+{
+  "modid": "crybaby",
+  "name": "Crybaby",
+  "description": "Go ahead, cry your eyes out. Maybe you can boil the tears into salt if you live long enough.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["SnakeFang12"],
+  "credits": "Me. For being cool.",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
