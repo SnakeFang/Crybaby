@@ -93,8 +93,8 @@ public class ItemTearBottle extends Item
     @Override
     public void getSubItems(Item item, CreativeTabs tabs, List<ItemStack> list)
     {
-        list.add(new ItemStack(item, 1, 0));
-        list.add(new ItemStack(item, 1, Crybaby.getInstance().getCryingTime()));
+        list.add(initStack(new ItemStack(item, 1, 0)));
+        list.add(initStack());
     }
     
     @Override
