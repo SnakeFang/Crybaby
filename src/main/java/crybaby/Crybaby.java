@@ -2,15 +2,14 @@ package crybaby;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import crybaby.items.ItemSaltBottle;
 import crybaby.items.ItemTearBottle;
+import crybaby.recipe.ShapelessOreOutRecipe;
 import crybaby.sounds.CrybabySounds;
 import lombok.Getter;
 import net.minecraft.creativetab.CreativeTabs;
@@ -19,6 +18,7 @@ import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
@@ -29,7 +29,8 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.oredict.RecipeSorter;
+import net.minecraftforge.oredict.RecipeSorter.Category;
 
 @Mod(modid = "crybaby")
 public class Crybaby
@@ -89,6 +90,8 @@ public class Crybaby
         ItemSaltBottle.getInstance();
         CrybabySounds.init();
         MinecraftForge.EVENT_BUS.register(this);
+        
+        RecipeSorter.register("crybaby:shapelessoreout", ShapelessOreOutRecipe.class, Category.SHAPELESS, "after:forge:shapelessore");
     }
     
     @Mod.EventHandler
@@ -98,21 +101,100 @@ public class Crybaby
     }
     
     private Map<UUID, Long> lastCries = Maps.newHashMap();
-    private Set<UUID> crying = Sets.newHashSet();
     
-    public void startCrying(EntityPlayer player)
+    public void startCrying(ItemStack stack)
     {
-        crying.add(player.getUniqueID());
+        if (stack != null && stack.getItem() == ItemTearBottle.getInstance())
+        {
+            if (stack.hasTagCompound())
+            {
+                stack.getTagCompound().setBoolean("crying", true);
+            }
+            else
+            {
+                NBTTagCompound nbt = new NBTTagCompound();
+                nbt.setBoolean("crying", true);
+                
+                stack.setTagCompound(nbt);
+            }
+        }
     }
     
-    public void stopCrying(EntityPlayer player)
+    public void stopCrying(ItemStack stack)
     {
-        crying.remove(player.getUniqueID());
+        if (stack != null && stack.getItem() == ItemTearBottle.getInstance())
+        {
+            if (stack.hasTagCompound())
+            {
+                stack.getTagCompound().setBoolean("crying", false);
+            }
+            else
+            {
+                NBTTagCompound nbt = new NBTTagCompound();
+                nbt.setBoolean("crying", false);
+                
+                stack.setTagCompound(nbt);
+            }
+        }
     }
     
     public boolean isCrying(EntityPlayer player)
     {
-        return crying.contains(player.getUniqueID());
+        for (ItemStack stack : player.inventoryContainer.inventoryItemStacks)
+        {
+            if (isCrying(stack))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    public boolean isDoubleCrying(EntityPlayer player)
+    {
+        boolean single = false;
+        
+        for (ItemStack stack : player.inventoryContainer.inventoryItemStacks)
+        {
+            if (isCrying(stack))
+            {
+                if (single)
+                {
+                    return true;
+                }
+                else
+                {
+                    single = true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    public boolean isCrying(ItemStack stack)
+    {
+        if (stack != null && stack.getItem() == ItemTearBottle.getInstance())
+        {
+            if (stack.hasTagCompound() && stack.getTagCompound().hasKey("crying", 1))
+            {
+                return stack.getTagCompound().getBoolean("crying");
+            }
+            else
+            {
+                NBTTagCompound nbt = new NBTTagCompound();
+                nbt.setBoolean("crying", false);
+                
+                stack.setTagCompound(nbt);
+                
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
     }
     
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -126,7 +208,7 @@ public class Crybaby
             {
                 long lastCry = lastCries.getOrDefault(player.getUniqueID(), 0L);
                 
-                if ((System.currentTimeMillis() - lastCry) >= 3000)
+                if (System.currentTimeMillis() - lastCry >= 3000)
                 {
                     lastCries.put(player.getUniqueID(), System.currentTimeMillis());
                     event.setSound(CrybabySounds.crying);
@@ -156,42 +238,7 @@ public class Crybaby
                     stack.setItemDamage(stack.getItemDamage() - 1);
                     player.inventory.setInventorySlotContents(slot.getSlotIndex(), stack);
                     
-                    if (stack.getItemDamage() <= 0)
-                    {
-                        stack.setItemDamage(0);
-                        stopCrying(player);
-                    }
-                    
                     break;
-                }
-            }
-        }
-    }
-    
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onTick(TickEvent.PlayerTickEvent event)
-    {
-        if (isCrying(event.player))
-        {
-            for (Slot slot : event.player.inventoryContainer.inventorySlots)
-            {
-                ItemStack stack = slot.getStack();
-                
-                if (isCrying(event.player))
-                {
-                    if ((stack != null) && stack.getItem().equals(ItemTearBottle.getInstance()) && (stack.getItemDamage() > 0))
-                    {
-                        stack.setItemDamage(stack.getItemDamage() - 1);
-                        event.player.inventory.setInventorySlotContents(slot.getSlotIndex(), stack);
-                        
-                        if (stack.getItemDamage() <= 0)
-                        {
-                            stack.setItemDamage(0);
-                            stopCrying(event.player);
-                        }
-                        
-                        break;
-                    }
                 }
             }
         }

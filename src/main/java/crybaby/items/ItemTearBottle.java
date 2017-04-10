@@ -5,6 +5,7 @@ import java.util.List;
 import crybaby.Crybaby;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumAction;
@@ -72,7 +73,7 @@ public class ItemTearBottle extends Item
     @Override
     public ActionResult<ItemStack> onItemRightClick(ItemStack stack, World world, EntityPlayer player, EnumHand hand)
     {
-        if ((stack.getMetadata() > 0) && !Crybaby.getInstance().isCrying(player))
+        if ((stack.getItemDamage() > 0) && !Crybaby.getInstance().isCrying(player))
         {
             player.setActiveHand(hand);
             return new ActionResult<>(EnumActionResult.SUCCESS, stack);
@@ -86,7 +87,7 @@ public class ItemTearBottle extends Item
     @Override
     public EnumAction getItemUseAction(ItemStack stack)
     {
-        return stack.getItemDamage() == 0 ? EnumAction.NONE : EnumAction.DRINK;
+        return stack.getItemDamage() == 0 || Crybaby.getInstance().isCrying(stack) ? EnumAction.NONE : EnumAction.DRINK;
     }
     
     @Override
@@ -98,34 +99,55 @@ public class ItemTearBottle extends Item
     @Override
     public ItemStack onItemUseFinish(ItemStack stack, World worldIn, EntityLivingBase entity)
     {
-        if ((entity instanceof EntityPlayer) && (stack.getItemDamage() > 0))
+        if (stack.getItemDamage() > 0 && entity instanceof EntityPlayer && !Crybaby.getInstance().isCrying((EntityPlayer) entity))
         {
-            Crybaby.getInstance().startCrying((EntityPlayer) entity);
-            
-            stack.setItemDamage(stack.getItemDamage() - 1);
+            Crybaby.getInstance().startCrying(stack);
             
             int debuffTime = Crybaby.getInstance().getDebuffTime();
             
-            for (String potion : Crybaby.getInstance().getDebuffs())
+            for (String potionName : Crybaby.getInstance().getDebuffs())
             {
-                addToPotionEffect(entity, Potion.REGISTRY.getObject(new ResourceLocation(potion)), debuffTime);
+                Potion potion = Potion.REGISTRY.getObject(new ResourceLocation(potionName));
+                PotionEffect effect = entity.getActivePotionEffect(potion);
+                
+                if (effect != null)
+                {
+                    entity.addPotionEffect(new PotionEffect(potion, effect.getDuration() + debuffTime, effect.getAmplifier(), effect.getIsAmbient(), effect.doesShowParticles()));
+                }
+                else
+                {
+                    entity.addPotionEffect(new PotionEffect(potion, debuffTime));
+                }
             }
         }
         
         return stack;
     }
     
-    private void addToPotionEffect(EntityLivingBase entity, Potion potion, int time)
+    @Override
+    public void onUpdate(ItemStack stack, World world, Entity entity, int itemSlot, boolean isSelected)
     {
-        PotionEffect effect = entity.getActivePotionEffect(potion);
-        
-        if (effect != null)
+        if (entity instanceof EntityPlayer && Crybaby.getInstance().isCrying(stack))
         {
-            entity.addPotionEffect(new PotionEffect(potion, effect.getDuration() + time, effect.getAmplifier(), effect.getIsAmbient(), effect.doesShowParticles()));
-        }
-        else
-        {
-            entity.addPotionEffect(new PotionEffect(potion, time));
+            EntityPlayer player = (EntityPlayer) entity;
+            
+            if (!Crybaby.getInstance().isDoubleCrying(player))
+            {
+                if (stack != null && stack.getItem().equals(ItemTearBottle.getInstance()) && stack.getItemDamage() > 0)
+                {
+                    stack.setItemDamage(stack.getItemDamage() - 1);
+                    
+                    if (stack.getItemDamage() <= 0)
+                    {
+                        stack.setItemDamage(0);
+                        Crybaby.getInstance().stopCrying(stack);
+                    }
+                }
+            }
+            else
+            {
+                Crybaby.getInstance().stopCrying(stack);
+            }
         }
     }
 }
