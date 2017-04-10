@@ -18,7 +18,6 @@ import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
@@ -106,17 +105,7 @@ public class Crybaby
     {
         if (stack != null && stack.getItem() == ItemTearBottle.getInstance())
         {
-            if (stack.hasTagCompound())
-            {
-                stack.getTagCompound().setBoolean("crying", true);
-            }
-            else
-            {
-                NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setBoolean("crying", true);
-                
-                stack.setTagCompound(nbt);
-            }
+            ItemTearBottle.getInstance().initStack(stack).getTagCompound().setBoolean("crying", true);
         }
     }
     
@@ -130,10 +119,7 @@ public class Crybaby
             }
             else
             {
-                NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setBoolean("crying", false);
-                
-                stack.setTagCompound(nbt);
+                ItemTearBottle.getInstance().initStack(stack).getTagCompound().setBoolean("crying", false);
             }
         }
     }
@@ -177,19 +163,7 @@ public class Crybaby
     {
         if (stack != null && stack.getItem() == ItemTearBottle.getInstance())
         {
-            if (stack.hasTagCompound() && stack.getTagCompound().hasKey("crying", 1))
-            {
-                return stack.getTagCompound().getBoolean("crying");
-            }
-            else
-            {
-                NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setBoolean("crying", false);
-                
-                stack.setTagCompound(nbt);
-                
-                return false;
-            }
+            return ItemTearBottle.getInstance().initStack(stack).getTagCompound().getBoolean("crying");
         }
         else
         {
@@ -233,7 +207,7 @@ public class Crybaby
             {
                 ItemStack stack = slot.getStack();
                 
-                if ((stack != null) && stack.getItem().equals(ItemTearBottle.getInstance()) && (stack.getItemDamage() > 0))
+                if (stack != null && stack.getItem().equals(ItemTearBottle.getInstance()) && stack.getItemDamage() > 0)
                 {
                     stack.setItemDamage(stack.getItemDamage() - 1);
                     player.inventory.setInventorySlotContents(slot.getSlotIndex(), stack);

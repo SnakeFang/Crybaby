@@ -51,6 +51,6 @@ public class ItemSaltBottle extends Item
     @Override
     public ItemStack getContainerItem(ItemStack stack)
     {
-        return new ItemStack(ItemTearBottle.getInstance(), 1, Crybaby.getInstance().getCryingTime());
+        return ItemTearBottle.getInstance().initStack();
     }
 }

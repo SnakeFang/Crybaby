@@ -11,6 +11,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumAction;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ActionResult;
@@ -47,6 +48,32 @@ public class ItemTearBottle extends Item
         {
             registerModels();
         }
+    }
+    
+    public ItemStack initStack(ItemStack stack)
+    {
+        if(!stack.hasTagCompound())
+        {
+            stack.setTagCompound(new NBTTagCompound());
+        }
+        
+        if(!stack.getTagCompound().hasKey("crying", 1))
+        {
+            stack.getTagCompound().setBoolean("crying", false);
+        }
+        
+        return stack;
+    }
+    
+    public ItemStack initStack()
+    {
+        NBTTagCompound nbt = new NBTTagCompound();
+        nbt.setBoolean("crying", true);
+        
+        ItemStack stack = new ItemStack(getInstance(), 1, Crybaby.getInstance().getCryingTime());
+        stack.setTagCompound(nbt);
+        
+        return stack;
     }
     
     @SideOnly(Side.CLIENT)

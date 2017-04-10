@@ -17,7 +17,7 @@ public class CrybabyRecipes
     
     private static void registerCrafting()
     {
-        GameRegistry.addShapedRecipe(new ItemStack(ItemTearBottle.getInstance(), 1, Crybaby.getInstance().getCryingTime()), "X", "Y", 'X', Items.LEATHER, 'Y', Items.GLASS_BOTTLE);
+        GameRegistry.addShapedRecipe(ItemTearBottle.getInstance().initStack(), "X", "Y", 'X', Items.LEATHER, 'Y', Items.GLASS_BOTTLE);
         GameRegistry.addRecipe(new ShapelessOreOutRecipe("itemSalt", 8, new Object[] { ItemSaltBottle.getInstance() }));
     }
     
