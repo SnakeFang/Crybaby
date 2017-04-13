@@ -1,7 +1,5 @@
 package crybaby.items;
 
-import java.util.List;
-
 import crybaby.Crybaby;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
@@ -17,6 +15,7 @@ import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.ModelLoader;
@@ -65,7 +64,8 @@ public class ItemTearBottle extends Item
         return stack;
     }
     
-    public ItemStack initStack()
+    @Override
+    public ItemStack getDefaultInstance()
     {
         NBTTagCompound nbt = new NBTTagCompound();
         nbt.setBoolean("crying", true);
@@ -91,16 +91,18 @@ public class ItemTearBottle extends Item
     
     @SideOnly(Side.CLIENT)
     @Override
-    public void getSubItems(Item item, CreativeTabs tabs, List<ItemStack> list)
+    public void getSubItems(Item item, CreativeTabs tabs, NonNullList<ItemStack> list)
     {
         list.add(initStack(new ItemStack(item, 1, 0)));
-        list.add(initStack());
+        list.add(getDefaultInstance());
     }
     
     @Override
-    public ActionResult<ItemStack> onItemRightClick(ItemStack stack, World world, EntityPlayer player, EnumHand hand)
+    public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand)
     {
-        if ((stack.getItemDamage() > 0) && !Crybaby.getInstance().isCrying(player))
+        ItemStack stack = player.getHeldItem(hand);
+        
+        if (stack.getItemDamage() > 0 && !Crybaby.getInstance().isCrying(player))
         {
             player.setActiveHand(hand);
             return new ActionResult<>(EnumActionResult.SUCCESS, stack);

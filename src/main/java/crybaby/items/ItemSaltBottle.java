@@ -51,6 +51,6 @@ public class ItemSaltBottle extends Item
     @Override
     public ItemStack getContainerItem(ItemStack stack)
     {
-        return ItemTearBottle.getInstance().initStack();
+        return ItemTearBottle.getInstance().getDefaultInstance();
     }
 }

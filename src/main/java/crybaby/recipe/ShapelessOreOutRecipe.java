@@ -54,7 +54,7 @@ public class ShapelessOreOutRecipe extends ShapelessOreRecipe
         if (OreDictionary.doesOreNameExist(outputOre))
         {
             ItemStack stack = OreDictionary.getOres(outputOre).get(0).copy();
-            stack.stackSize = outputCount;
+            stack.setCount(outputCount);
             
             if (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE)
             {

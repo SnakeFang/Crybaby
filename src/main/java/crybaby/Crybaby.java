@@ -16,7 +16,6 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -42,9 +41,9 @@ public class Crybaby
     private CreativeTabs creativeTab = new CreativeTabs("crybaby")
     {
         @Override
-        public Item getTabIconItem()
+        public ItemStack getTabIconItem()
         {
-            return ItemTearBottle.getInstance();
+            return ItemTearBottle.getInstance().getDefaultInstance();
         }
     };
     
